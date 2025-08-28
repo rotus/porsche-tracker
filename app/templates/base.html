@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Porsche Tracker{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Plotly.js for charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        .porsche-red { color: #d5001c; }
+        .porsche-black { color: #000000; }
+        .navbar-brand { font-weight: bold; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.3s; }
+        .price-change-positive { color: #dc3545; }
+        .price-change-negative { color: #198754; }
+        .deal-excellent { background-color: #d1edff; border-left: 4px solid #0d6efd; }
+        .deal-good { background-color: #d4edda; border-left: 4px solid #198754; }
+        .deal-fair { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .deal-poor { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .listing-image { height: 200px; object-fit: cover; }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand porsche-red" href="{{ url_for('main.index') }}">
+                <i class="fas fa-car-side"></i> Porsche Tracker
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.listings') }}">
+                            <i class="fas fa-list"></i> Listings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.watch_criteria') }}">
+                            <i class="fas fa-eye"></i> Watch Criteria
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="fas fa-cogs"></i> Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="runMonitoring()">
+                                <i class="fas fa-search"></i> Run Monitoring
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="runPriceTracking()">
+                                <i class="fas fa-chart-line"></i> Update Prices
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('api.market_analysis') }}" target="_blank">
+                                <i class="fas fa-analytics"></i> Market Analysis
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="porsche-red">Porsche Tracker</h5>
+                    <p>Track, monitor, and analyze Porsche listings with advanced VIN data enrichment.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Built with <i class="fas fa-heart porsche-red"></i> for Porsche enthusiasts</p>
+                    <small class="text-muted">Data sourced from CarGurus.com</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Global JavaScript functions -->
+    <script>
+        function runMonitoring() {
+            if (confirm('This will search for new listings matching your criteria. Continue?')) {
+                showLoader('Running monitoring...');
+                fetch('/api/run-monitoring', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoader();
+                        if (data.success) {
+                            showAlert('success', data.message);
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            showAlert('danger', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        hideLoader();
+                        showAlert('danger', 'Error running monitoring: ' + error.message);
+                    });
+            }
+        }
+        
+        function runPriceTracking() {
+            if (confirm('This will check for price changes on watched listings. Continue?')) {
+                showLoader('Tracking price changes...');
+                fetch('/api/price-tracking', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        hideLoader();
+                        if (data.success) {
+                            showAlert('success', data.message);
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            showAlert('danger', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        hideLoader();
+                        showAlert('danger', 'Error running price tracking: ' + error.message);
+                    });
+            }
+        }
+        
+        function watchListing(listingId) {
+            fetch(`/api/watch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        const button = document.querySelector(`[onclick="watchListing(${listingId})"]`);
+                        if (button) {
+                            button.onclick = () => unwatchListing(listingId);
+                            button.innerHTML = '<i class="fas fa-eye-slash"></i> Unwatch';
+                            button.className = 'btn btn-outline-secondary btn-sm';
+                        }
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => showAlert('danger', 'Error: ' + error.message));
+        }
+        
+        function unwatchListing(listingId) {
+            fetch(`/api/unwatch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        const button = document.querySelector(`[onclick="unwatchListing(${listingId})"]`);
+                        if (button) {
+                            button.onclick = () => watchListing(listingId);
+                            button.innerHTML = '<i class="fas fa-eye"></i> Watch';
+                            button.className = 'btn btn-primary btn-sm';
+                        }
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => showAlert('danger', 'Error: ' + error.message));
+        }
+        
+        function showAlert(type, message) {
+            const alertContainer = document.querySelector('.container.mt-3');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        function showLoader(message = 'Loading...') {
+            const loader = document.createElement('div');
+            loader.id = 'global-loader';
+            loader.className = 'position-fixed top-50 start-50 translate-middle';
+            loader.style.zIndex = '9999';
+            loader.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="spinner-border porsche-red" role="status"></div>
+                        <div class="mt-2">${message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loader);
+        }
+        
+        function hideLoader() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.remove();
+            }
+        }
+        
+        function formatPrice(price) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(price);
+        }
+        
+        function formatNumber(number) {
+            return new Intl.NumberFormat('en-US').format(number);
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

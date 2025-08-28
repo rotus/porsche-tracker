@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Porsche Tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Plotly.js for charts -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        .porsche-red { color: #d5001c; }
+        .porsche-black { color: #000000; }
+        .navbar-brand { font-weight: bold; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.3s; }
+        .price-change-positive { color: #dc3545; }
+        .price-change-negative { color: #198754; }
+        .deal-excellent { background-color: #d1edff; border-left: 4px solid #0d6efd; }
+        .deal-good { background-color: #d4edda; border-left: 4px solid #198754; }
+        .deal-fair { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .deal-poor { background-color: #f8d7da; border-left: 4px solid #dc3545; }
+        .listing-image { height: 200px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand porsche-red" href="/">
+                <i class="fas fa-car-side"></i> Porsche Tracker
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/listings">
+                            <i class="fas fa-list"></i> Listings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/watch-criteria">
+                            <i class="fas fa-eye"></i> Watch Criteria
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="fas fa-cogs"></i> Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="runMonitoring()">
+                                <i class="fas fa-search"></i> Run Monitoring
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="runPriceTracking()">
+                                <i class="fas fa-chart-line"></i> Update Prices
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="addSampleListing()">
+                                <i class="fas fa-plus"></i> Add Sample Listing
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="display-4">
+                    <i class="fas fa-tachometer-alt porsche-red"></i> Dashboard
+                </h1>
+                <p class="lead">Track and monitor Porsche listings with advanced analytics</p>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>{{ total_listings }}</h4>
+                                <p class="mb-0">Active Listings</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-car fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>{{ watched_listings }}</h4>
+                                <p class="mb-0">Watched Listings</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-eye fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>{{ active_criteria }}</h4>
+                                <p class="mb-0">Active Criteria</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-filter fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>{{ recent_price_changes }}</h4>
+                                <p class="mb-0">Recent Changes</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-play"></i> Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <button class="btn btn-primary btn-lg w-100 mb-2" onclick="addSampleListing()">
+                                    <i class="fas fa-plus"></i> Add Sample Listing
+                                </button>
+                                <small class="text-muted">Add a test listing to try features</small>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-danger btn-lg w-100 mb-2" onclick="addGT3RSSamples()">
+                                    <i class="fas fa-rocket"></i> Add GT3 RS Samples
+                                </button>
+                                <small class="text-muted">Add sample GT3 RS listings (991/992)</small>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-success btn-lg w-100 mb-2" onclick="runPriceTracking()">
+                                    <i class="fas fa-chart-line"></i> Update Prices
+                                </button>
+                                <small class="text-muted">Check for price changes on watched listings</small>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/create-criteria" class="btn btn-info btn-lg w-100 mb-2">
+                                    <i class="fas fa-plus"></i> Add Criteria
+                                </a>
+                                <small class="text-muted">Create new monitoring criteria</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Listings -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-clock"></i> Recent Listings</h5>
+                        <a href="/listings" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_listings %}
+                            <div class="list-group list-group-flush">
+                                {% for listing in recent_listings %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <a href="/listing/{{ listing.id }}" class="text-decoration-none">
+                                                    {{ listing.year }} {{ listing.model }}
+                                                    {% if listing.trim %}<small class="text-muted">{{ listing.trim }}</small>{% endif %}
+                                                </a>
+                                            </h6>
+                                            <p class="mb-1">
+                                                <strong class="text-success">${{ "{:,}".format(listing.price) }}</strong>
+                                                {% if listing.mileage %} • {{ "{:,}".format(listing.mileage) }} miles{% endif %}
+                                                {% if listing.exterior_color %} • {{ listing.exterior_color }}{% endif %}
+                                            </p>
+                                            <small class="text-muted">
+                                                {% if listing.city and listing.state %}{{ listing.city }}, {{ listing.state }}{% endif %}
+                                                {% if listing.dealer_name %} • {{ listing.dealer_name }}{% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">{{ listing.first_seen[:10] if listing.first_seen else 'Recently' }}</small>
+                                            {% if listing.is_watched %}
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing({{ listing.id }})">
+                                                    <i class="fas fa-eye-slash"></i> Unwatch
+                                                </button>
+                                            {% else %}
+                                                <button class="btn btn-primary btn-sm" onclick="watchListing({{ listing.id }})">
+                                                    <i class="fas fa-eye"></i> Watch
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No recent listings found</p>
+                                <button class="btn btn-primary" onclick="addSampleListing()">
+                                    <i class="fas fa-plus"></i> Add Sample Listing
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 911 GT3 RS Price Trends -->
+        <div class="row mt-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-chart-line porsche-red"></i> 911 GT3 RS Price Trends</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" onclick="loadGT3RSChart('all')">All</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadGT3RSChart('991')">991 Gen</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadGT3RSChart('992')">992 Gen</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadGT3RSChart('year')">By Year</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">991.1 GT3 RS (2015-2017)</h6>
+                                    <h4 class="porsche-red">$285K</h4>
+                                    <small class="text-success">↑ 12% vs last month</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">991.2 GT3 RS (2018-2019)</h6>
+                                    <h4 class="porsche-red">$320K</h4>
+                                    <small class="text-success">↑ 8% vs last month</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">992 GT3 RS (2022+)</h6>
+                                    <h4 class="porsche-red">$380K</h4>
+                                    <small class="text-warning">↑ 3% vs last month</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h6 class="text-muted">Market Premium</h6>
+                                    <h4 class="text-info">45%</h4>
+                                    <small class="text-muted">vs MSRP average</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="gt3rsChart" style="height: 400px;">
+                            <div class="d-flex justify-content-center align-items-center h-100">
+                                <div class="text-center">
+                                    <i class="fas fa-car-side fa-3x porsche-red mb-3"></i>
+                                    <p class="text-muted">GT3 RS price trends and generation analysis</p>
+                                    <button class="btn btn-primary" onclick="loadGT3RSChart('all')">
+                                        <i class="fas fa-chart-line"></i> Load GT3 RS Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="porsche-red">Porsche Tracker</h5>
+                    <p>Track, monitor, and analyze Porsche listings with advanced VIN data enrichment.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Built with <i class="fas fa-heart porsche-red"></i> for Porsche enthusiasts</p>
+                    <small class="text-muted">Python 3.13 Compatible • SQLite Database</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Global JavaScript functions -->
+    <script>
+        function runMonitoring() {
+            if (confirm('This will search for new listings matching your criteria. Continue?')) {
+                showLoader('Running monitoring...');
+                // Placeholder for monitoring functionality
+                setTimeout(() => {
+                    hideLoader();
+                    showAlert('info', 'Monitoring functionality will be connected to the scraper system.');
+                }, 2000);
+            }
+        }
+        
+        function runPriceTracking() {
+            if (confirm('This will check for price changes on watched listings. Continue?')) {
+                showLoader('Tracking price changes...');
+                // Placeholder for price tracking functionality
+                setTimeout(() => {
+                    hideLoader();
+                    showAlert('info', 'Price tracking functionality will monitor watched listings for changes.');
+                }, 2000);
+            }
+        }
+        
+        function addSampleListing() {
+            fetch('/api/add-sample-listing', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'Error adding sample listing: ' + error.message);
+                });
+        }
+        
+        function addGT3RSSamples() {
+            fetch('/api/add-gt3rs-samples', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', '🏎️ ' + data.message + ' - Perfect for GT3 RS tracking!');
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'Error adding GT3 RS samples: ' + error.message);
+                });
+        }
+        
+        function watchListing(listingId) {
+            fetch(`/api/watch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        const button = document.querySelector(`[onclick="watchListing(${listingId})"]`);
+                        if (button) {
+                            button.onclick = () => unwatchListing(listingId);
+                            button.innerHTML = '<i class="fas fa-eye-slash"></i> Unwatch';
+                            button.className = 'btn btn-outline-secondary btn-sm';
+                        }
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => showAlert('danger', 'Error: ' + error.message));
+        }
+        
+        function unwatchListing(listingId) {
+            fetch(`/api/unwatch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        const button = document.querySelector(`[onclick="unwatchListing(${listingId})"]`);
+                        if (button) {
+                            button.onclick = () => watchListing(listingId);
+                            button.innerHTML = '<i class="fas fa-eye"></i> Watch';
+                            button.className = 'btn btn-primary btn-sm';
+                        }
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => showAlert('danger', 'Error: ' + error.message));
+        }
+        
+        function showAlert(type, message) {
+            const alertContainer = document.querySelector('.container.mt-3');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        function showLoader(message = 'Loading...') {
+            const loader = document.createElement('div');
+            loader.id = 'global-loader';
+            loader.className = 'position-fixed top-50 start-50 translate-middle';
+            loader.style.zIndex = '9999';
+            loader.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="spinner-border porsche-red" role="status"></div>
+                        <div class="mt-2">${message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loader);
+        }
+        
+        function hideLoader() {
+            const loader = document.getElementById('global-loader');
+            if (loader) {
+                loader.remove();
+            }
+        }
+        
+        function loadGT3RSChart(view = 'all') {
+            showLoader('Loading GT3 RS price data...');
+            
+            // Update button states
+            document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+            event?.target?.classList.add('active');
+            
+            // Sample GT3 RS data for demonstration
+            setTimeout(() => {
+                hideLoader();
+                
+                let chartData, layout;
+                
+                if (view === 'all') {
+                    // Price trends over time for all generations
+                    chartData = [{
+                        x: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                        y: [185, 195, 205, 220, 240, 260, 275, 295, 320, 285],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '991.1 GT3 RS',
+                        line: { color: '#d5001c', width: 3 },
+                        marker: { size: 8 }
+                    }, {
+                        x: ['2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                        y: [250, 265, 285, 300, 315, 340, 320],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '991.2 GT3 RS',
+                        line: { color: '#ff6b35', width: 3 },
+                        marker: { size: 8 }
+                    }, {
+                        x: ['2022', '2023', '2024'],
+                        y: [350, 375, 380],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: '992 GT3 RS',
+                        line: { color: '#1e88e5', width: 3 },
+                        marker: { size: 8 }
+                    }];
+                    
+                    layout = {
+                        title: '911 GT3 RS Price Trends by Generation',
+                        xaxis: { title: 'Year' },
+                        yaxis: { title: 'Average Price ($K)' },
+                        margin: { t: 50, l: 60, r: 50, b: 60 },
+                        legend: { x: 0.02, y: 0.98 }
+                    };
+                    
+                } else if (view === '991') {
+                    // 991 generation breakdown
+                    chartData = [{
+                        x: ['2015 MY', '2016 MY', '2017 MY', '2018 MY', '2019 MY'],
+                        y: [185, 195, 205, 250, 265],
+                        type: 'bar',
+                        marker: { 
+                            color: ['#d5001c', '#d5001c', '#d5001c', '#ff6b35', '#ff6b35'],
+                            opacity: 0.8
+                        },
+                        text: ['991.1', '991.1', '991.1', '991.2', '991.2'],
+                        textposition: 'auto'
+                    }];
+                    
+                    layout = {
+                        title: '991 Generation GT3 RS - Average Prices by Model Year',
+                        xaxis: { title: 'Model Year' },
+                        yaxis: { title: 'Average Price ($K)' },
+                        margin: { t: 50, l: 60, r: 50, b: 60 }
+                    };
+                    
+                } else if (view === '992') {
+                    // 992 generation with options analysis
+                    chartData = [{
+                        x: ['Base 992 GT3 RS', 'w/ Weissach Pkg', 'w/ Carbon Wheels', 'Full Carbon Spec'],
+                        y: [350, 375, 385, 420],
+                        type: 'bar',
+                        marker: { 
+                            color: '#1e88e5',
+                            opacity: 0.8
+                        }
+                    }];
+                    
+                    layout = {
+                        title: '992 GT3 RS - Price by Specification Level (2024)',
+                        xaxis: { title: 'Configuration' },
+                        yaxis: { title: 'Average Price ($K)' },
+                        margin: { t: 50, l: 60, r: 50, b: 80 }
+                    };
+                    
+                } else if (view === 'year') {
+                    // Year-over-year appreciation
+                    chartData = [{
+                        x: ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+                        y: [0, 5.4, 5.1, 7.3, 9.1, 8.3, 5.8, 7.3, 8.5, -10.9],
+                        type: 'bar',
+                        marker: { 
+                            color: [0, 5.4, 5.1, 7.3, 9.1, 8.3, 5.8, 7.3, 8.5, -10.9].map(val => 
+                                val >= 0 ? '#198754' : '#dc3545'
+                            )
+                        },
+                        text: [0, 5.4, 5.1, 7.3, 9.1, 8.3, 5.8, 7.3, 8.5, -10.9].map(val => `${val}%`),
+                        textposition: 'auto'
+                    }];
+                    
+                    layout = {
+                        title: 'GT3 RS Year-over-Year Price Appreciation (%)',
+                        xaxis: { title: 'Year' },
+                        yaxis: { title: 'Price Change (%)' },
+                        margin: { t: 50, l: 60, r: 50, b: 60 }
+                    };
+                }
+                
+                Plotly.newPlot('gt3rsChart', chartData, layout, {responsive: true});
+            }, 1000);
+        }
+
+        // Auto-refresh dashboard every 5 minutes
+        setInterval(() => {
+            // Only refresh if no modals are open
+            if (!document.querySelector('.modal.show')) {
+                location.reload();
+            }
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>

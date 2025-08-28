@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Porsche Tracker - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #000; color: #d5001c; padding: 20px 0; text-align: center; }
+        .header h1 { font-size: 2.5rem; }
+        .nav { background: #333; padding: 10px 0; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; gap: 20px; }
+        .nav a { color: white; text-decoration: none; padding: 10px 15px; }
+        .nav a:hover { background: #555; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-card h3 { color: #d5001c; font-size: 2rem; margin-bottom: 10px; }
+        .stat-card p { color: #666; }
+        .section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0; }
+        .section h2 { margin-bottom: 20px; color: #333; }
+        .listing-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .listing-item h4 { color: #d5001c; margin-bottom: 10px; }
+        .listing-price { font-size: 1.2rem; font-weight: bold; color: #2e7d32; }
+        .btn { background: #d5001c; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #b8001a; }
+        .btn-secondary { background: #666; }
+        .btn-secondary:hover { background: #555; }
+        .flash-messages { margin: 20px 0; }
+        .flash-message { padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏎️ Porsche Tracker</h1>
+        <p>Track and monitor Porsche listings with ease</p>
+    </div>
+    
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/">Dashboard</a>
+            <a href="/listings">Browse Listings</a>
+            <a href="/watch-criteria">Watch Criteria</a>
+            <a href="/create-criteria">Add Criteria</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ 'success' if category == 'success' else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Statistics -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3>{{ total_listings }}</h3>
+                <p>Active Listings</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ watched_listings }}</h3>
+                <p>Watched Listings</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ active_criteria }}</h3>
+                <p>Watch Criteria</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ recent_price_changes }}</h3>
+                <p>Recent Changes</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+            <h2>Quick Actions</h2>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <button class="btn" onclick="addSampleListing()">Add Sample Listing</button>
+                <a href="/listings" class="btn btn-secondary">Browse All Listings</a>
+                <a href="/create-criteria" class="btn btn-secondary">Create Watch Criteria</a>
+            </div>
+        </div>
+
+        <!-- Recent Listings -->
+        <div class="section">
+            <h2>Recent Listings</h2>
+            {% if recent_listings %}
+                {% for listing in recent_listings %}
+                <div class="listing-item">
+                    <h4>{{ listing.year }} {{ listing.make }} {{ listing.model }}
+                        {% if listing.trim %} {{ listing.trim }}{% endif %}
+                    </h4>
+                    <div class="listing-price">${{ "{:,}".format(listing.price) }}</div>
+                    <p>
+                        {% if listing.mileage %}{{ "{:,}".format(listing.mileage) }} miles • {% endif %}
+                        {% if listing.exterior_color %}{{ listing.exterior_color }} • {% endif %}
+                        {% if listing.city and listing.state %}{{ listing.city }}, {{ listing.state }}{% endif %}
+                    </p>
+                    <div style="margin-top: 10px;">
+                        {% if listing.is_watched %}
+                            <button class="btn btn-secondary" onclick="unwatchListing({{ listing.id }})">Unwatch</button>
+                        {% else %}
+                            <button class="btn" onclick="watchListing({{ listing.id }})">Watch</button>
+                        {% endif %}
+                        <a href="/listing/{{ listing.id }}" class="btn btn-secondary">View Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>No listings found. Click "Add Sample Listing" to get started!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function addSampleListing() {
+            fetch('/api/add-sample-listing', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Sample listing added successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        }
+        
+        function watchListing(listingId) {
+            fetch(`/api/watch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        }
+        
+        function unwatchListing(listingId) {
+            fetch(`/api/unwatch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Porsche Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">
+            <i class="fas fa-tachometer-alt porsche-red"></i> Dashboard
+        </h1>
+        <p class="lead">Track and monitor Porsche listings with advanced analytics</p>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_listings }}</h4>
+                        <p class="mb-0">Active Listings</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-car fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ watched_listings }}</h4>
+                        <p class="mb-0">Watched Listings</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-eye fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ active_criteria }}</h4>
+                        <p class="mb-0">Active Criteria</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-filter fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ recent_price_changes|length }}</h4>
+                        <p class="mb-0">Recent Changes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-play"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary btn-lg w-100 mb-2" onclick="runMonitoring()">
+                            <i class="fas fa-search"></i> Find New Listings
+                        </button>
+                        <small class="text-muted">Search for new listings matching your criteria</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-success btn-lg w-100 mb-2" onclick="runPriceTracking()">
+                            <i class="fas fa-chart-line"></i> Update Prices
+                        </button>
+                        <small class="text-muted">Check for price changes on watched listings</small>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('main.create_criteria') }}" class="btn btn-info btn-lg w-100 mb-2">
+                            <i class="fas fa-plus"></i> Add Criteria
+                        </a>
+                        <small class="text-muted">Create new monitoring criteria</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Listings and Price Changes -->
+<div class="row">
+    <!-- Recent Listings -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-clock"></i> Recent Listings</h5>
+                <a href="{{ url_for('main.listings') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_listings %}
+                    <div class="list-group list-group-flush">
+                        {% for listing in recent_listings %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{{ url_for('main.listing_detail', listing_id=listing.id) }}" class="text-decoration-none">
+                                            {{ listing.year }} {{ listing.model }}
+                                            {% if listing.trim %}<small class="text-muted">{{ listing.trim }}</small>{% endif %}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1">
+                                        <strong class="text-success">${{ "{:,}".format(listing.price) }}</strong>
+                                        {% if listing.mileage %} • {{ "{:,}".format(listing.mileage) }} miles{% endif %}
+                                        {% if listing.exterior_color %} • {{ listing.exterior_color }}{% endif %}
+                                    </p>
+                                    <small class="text-muted">
+                                        {% if listing.city and listing.state %}{{ listing.city }}, {{ listing.state }}{% endif %}
+                                        {% if listing.dealer_name %} • {{ listing.dealer_name }}{% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">{{ listing.first_seen.strftime('%m/%d %I:%M%p') }}</small>
+                                    {% if listing.is_watched %}
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing({{ listing.id }})">
+                                            <i class="fas fa-eye-slash"></i> Unwatch
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-primary btn-sm" onclick="watchListing({{ listing.id }})">
+                                            <i class="fas fa-eye"></i> Watch
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent listings found</p>
+                        <button class="btn btn-primary" onclick="runMonitoring()">
+                            <i class="fas fa-search"></i> Search for Listings
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Price Changes -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line"></i> Price Changes</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_price_changes %}
+                    <div class="list-group list-group-flush">
+                        {% for price_change, listing in recent_price_changes %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{{ url_for('main.listing_detail', listing_id=listing.id) }}" class="text-decoration-none">
+                                            {{ listing.year }} {{ listing.model }}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-light text-dark me-2">${{ "{:,}".format(price_change.price) }}</span>
+                                        {% if price_change.price_change %}
+                                            {% if price_change.price_change > 0 %}
+                                                <span class="price-change-positive">
+                                                    <i class="fas fa-arrow-up"></i> +${{ "{:,}".format(price_change.price_change) }}
+                                                </span>
+                                            {% else %}
+                                                <span class="price-change-negative">
+                                                    <i class="fas fa-arrow-down"></i> ${{ "{:,}".format(price_change.price_change) }}
+                                                </span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted">{{ price_change.recorded_at.strftime('%m/%d %I:%M%p') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No price changes yet</p>
+                        <button class="btn btn-success btn-sm" onclick="runPriceTracking()">
+                            <i class="fas fa-sync"></i> Check Prices
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Market Overview Chart (placeholder) -->
+<div class="row mt-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-area"></i> Market Overview</h5>
+            </div>
+            <div class="card-body">
+                <div id="marketChart" style="height: 400px;">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-chart-area fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Market analysis chart will appear here</p>
+                            <button class="btn btn-info" onclick="loadMarketChart()">
+                                <i class="fas fa-analytics"></i> Load Market Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadMarketChart() {
+    showLoader('Loading market data...');
+    
+    fetch('/api/market-analysis')
+        .then(response => response.json())
+        .then(data => {
+            hideLoader();
+            
+            if (data.error) {
+                showAlert('danger', 'Error loading market data: ' + data.error);
+                return;
+            }
+            
+            // Create price distribution chart
+            const models = Object.keys(data.model_breakdown);
+            const counts = Object.values(data.model_breakdown);
+            
+            const trace = {
+                x: models,
+                y: counts,
+                type: 'bar',
+                marker: {
+                    color: '#d5001c'
+                }
+            };
+            
+            const layout = {
+                title: 'Listings by Model',
+                xaxis: { title: 'Model' },
+                yaxis: { title: 'Number of Listings' },
+                margin: { t: 50, l: 50, r: 50, b: 100 }
+            };
+            
+            Plotly.newPlot('marketChart', [trace], layout, {responsive: true});
+        })
+        .catch(error => {
+            hideLoader();
+            showAlert('danger', 'Error loading market chart: ' + error.message);
+        });
+}
+
+// Auto-refresh dashboard every 5 minutes
+setInterval(() => {
+    // Only refresh if no modals are open
+    if (!document.querySelector('.modal.show')) {
+        location.reload();
+    }
+}, 300000); // 5 minutes
+</script>
+{% endblock %}

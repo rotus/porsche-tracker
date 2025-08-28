@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Listings - Porsche Tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .porsche-red { color: #d5001c; }
+        .porsche-black { color: #000000; }
+        .navbar-brand { font-weight: bold; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.3s; }
+        .listing-card { margin-bottom: 20px; }
+        .listing-price { font-size: 1.5rem; font-weight: bold; color: #2e7d32; }
+        .listing-details { color: #666; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand porsche-red" href="/">
+                <i class="fas fa-car-side"></i> Porsche Tracker
+            </a>
+            
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/listings"><i class="fas fa-list"></i> Listings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/watch-criteria"><i class="fas fa-eye"></i> Watch Criteria</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="display-4">
+                    <i class="fas fa-list porsche-red"></i> Browse Listings
+                </h1>
+                <p class="lead">Search and filter Porsche listings</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-filter"></i> Filters</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="GET" action="/listings">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="model" class="form-label">Model</label>
+                                    <select class="form-select" name="model" id="model">
+                                        <option value="">All Models</option>
+                                        {% for model in models %}
+                                        <option value="{{ model }}" {% if current_filters.get('model') == model %}selected{% endif %}>
+                                            {{ model }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="min_year" class="form-label">Min Year</label>
+                                    <input type="number" class="form-control" name="min_year" id="min_year" 
+                                           value="{{ current_filters.get('min_year', '') }}" min="2000" max="2024">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="max_year" class="form-label">Max Year</label>
+                                    <input type="number" class="form-control" name="max_year" id="max_year" 
+                                           value="{{ current_filters.get('max_year', '') }}" min="2000" max="2024">
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="max_price" class="form-label">Max Price</label>
+                                    <input type="number" class="form-control" name="max_price" id="max_price" 
+                                           value="{{ current_filters.get('max_price', '') }}" step="1000">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="sort" class="form-label">Sort By</label>
+                                    <select class="form-select" name="sort" id="sort">
+                                        <option value="newest" {% if current_filters.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
+                                        <option value="price_low" {% if current_filters.get('sort') == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                        <option value="price_high" {% if current_filters.get('sort') == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                                        <option value="year" {% if current_filters.get('sort') == 'year' %}selected{% endif %}>Year: Newest</option>
+                                        <option value="mileage" {% if current_filters.get('sort') == 'mileage' %}selected{% endif %}>Mileage: Lowest</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> Apply Filters
+                                    </button>
+                                    <a href="/listings" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i> Clear
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Listings -->
+        <div class="row">
+            {% if listings %}
+                {% for listing in listings %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card listing-card card-hover">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title">
+                                    {{ listing.year }} {{ listing.model }}
+                                    {% if listing.trim %}
+                                        <br><small class="text-muted">{{ listing.trim }}</small>
+                                    {% endif %}
+                                </h5>
+                                {% if listing.is_watched %}
+                                    <span class="badge bg-success"><i class="fas fa-eye"></i> Watched</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="listing-price mb-2">${{ "{:,}".format(listing.price) }}</div>
+                            
+                            <div class="listing-details">
+                                {% if listing.mileage %}
+                                <p class="mb-1"><i class="fas fa-tachometer-alt"></i> {{ "{:,}".format(listing.mileage) }} miles</p>
+                                {% endif %}
+                                
+                                {% if listing.exterior_color %}
+                                <p class="mb-1"><i class="fas fa-palette"></i> {{ listing.exterior_color }}</p>
+                                {% endif %}
+                                
+                                {% if listing.city and listing.state %}
+                                <p class="mb-1"><i class="fas fa-map-marker-alt"></i> {{ listing.city }}, {{ listing.state }}</p>
+                                {% endif %}
+                                
+                                {% if listing.dealer_name %}
+                                <p class="mb-1"><i class="fas fa-store"></i> {{ listing.dealer_name }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-3">
+                                {% if listing.is_watched %}
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing({{ listing.id }})">
+                                        <i class="fas fa-eye-slash"></i> Unwatch
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-primary btn-sm" onclick="watchListing({{ listing.id }})">
+                                        <i class="fas fa-eye"></i> Watch
+                                    </button>
+                                {% endif %}
+                                
+                                <a href="/listing/{{ listing.id }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </a>
+                                
+                                {% if listing.url %}
+                                <a href="{{ listing.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-external-link-alt"></i> CarGurus
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col">
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4>No listings found</h4>
+                        <p class="text-muted">Try adjusting your filters or add some sample listings to get started.</p>
+                        <a href="/" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if listings and listings|length >= 20 %}
+        <div class="row mt-4">
+            <div class="col text-center">
+                <p class="text-muted">Showing up to 100 results. Use filters to narrow your search.</p>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="porsche-red">Porsche Tracker</h5>
+                    <p>Track, monitor, and analyze Porsche listings with advanced analytics.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Built with <i class="fas fa-heart porsche-red"></i> for Porsche enthusiasts</p>
+                    <small class="text-muted">Python 3.13 Compatible • SQLite Database</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function watchListing(listingId) {
+            fetch(`/api/watch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        }
+        
+        function unwatchListing(listingId) {
+            fetch(`/api/unwatch-listing/${listingId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        }
+    </script>
+</body>
+</html>
