@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Porsche Tracker</title>
+    <title>Dashboard - Porsche GT3 RS Tracker</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -31,7 +31,13 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand porsche-red" href="/">
-                <i class="fas fa-car-side"></i> Porsche Tracker
+                <img src="https://logos-world.net/wp-content/uploads/2021/04/Porsche-Logo.png" 
+                     alt="Porsche" 
+                     width="40" 
+                     height="30" 
+                     style="margin-right: 8px; background: transparent; filter: invert(0); object-fit: contain;"
+                     onerror="this.src='https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/porsche.svg'; this.style.filter='invert(1)';">
+Porsche GT3 RS Tracker
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -51,27 +57,37 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/watch-criteria">
-                            <i class="fas fa-eye"></i> Watch Criteria
+                        <a class="nav-link" href="/search-criteria">
+                            <i class="fas fa-search"></i> Search Criteria
                         </a>
                     </li>
                 </ul>
                 
                 <ul class="navbar-nav">
+                    <!-- User Status Icon -->
+                    <li class="nav-item">
+                        {% if authenticated %}
+                        <a class="nav-link" href="/setup" title="Logged in as {{ google_email }}">
+                            <i class="fas fa-user-check text-success"></i>
+                        </a>
+                        {% else %}
+                        <a class="nav-link" href="/setup" title="CarGurus login required - Click to setup">
+                            <i class="fas fa-user-slash text-warning"></i>
+                        </a>
+                        {% endif %}
+                    </li>
+                    <!-- Settings Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-cogs"></i> Tools
+                            <i class="fas fa-cog"></i> Setup
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="runMonitoring()">
-                                <i class="fas fa-search"></i> Run Monitoring
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="runPriceTracking()">
-                                <i class="fas fa-chart-line"></i> Update Prices
+                            <li><a class="dropdown-item" href="/setup">
+                                <i class="fas fa-key"></i> CarGurus Login
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="addSampleListing()">
-                                <i class="fas fa-plus"></i> Add Sample Listing
+                            <li><a class="dropdown-item" href="#" onclick="clearAllData()">
+                                <i class="fas fa-trash"></i> Clear All Data
                             </a></li>
                         </ul>
                     </li>
@@ -172,39 +188,19 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Quick Info -->
         <div class="row mb-4">
             <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-play"></i> Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <button class="btn btn-primary btn-lg w-100 mb-2" onclick="addSampleListing()">
-                                    <i class="fas fa-plus"></i> Add Sample Listing
-                                </button>
-                                <small class="text-muted">Add a test listing to try features</small>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-danger btn-lg w-100 mb-2" onclick="addGT3RSSamples()">
-                                    <i class="fas fa-rocket"></i> Add GT3 RS Samples
-                                </button>
-                                <small class="text-muted">Add sample GT3 RS listings (991/992)</small>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-success btn-lg w-100 mb-2" onclick="runPriceTracking()">
-                                    <i class="fas fa-chart-line"></i> Update Prices
-                                </button>
-                                <small class="text-muted">Check for price changes on watched listings</small>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="/create-criteria" class="btn btn-info btn-lg w-100 mb-2">
-                                    <i class="fas fa-plus"></i> Add Criteria
-                                </a>
-                                <small class="text-muted">Create new monitoring criteria</small>
-                            </div>
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-lightbulb fa-2x me-3 text-warning"></i>
+                        <div>
+                            <h6 class="mb-1">How to use GT3 RS Tracker:</h6>
+                            <small>
+                                1. Configure <a href="/search-criteria" class="alert-link">Search Criteria</a> to filter GT3 RS listings
+                                • 2. Watch specific cars that interest you
+                                • 3. Setup <a href="/setup" class="alert-link">CarGurus login</a> for live data
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -217,42 +213,71 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5><i class="fas fa-clock"></i> Recent Listings</h5>
-                        <a href="/listings" class="btn btn-sm btn-outline-primary">View All</a>
+                        <div class="d-flex gap-2">
+                            <a href="/search-criteria" class="btn btn-sm btn-outline-secondary" title="Filtered by your search criteria">
+                                <i class="fas fa-filter"></i> Filter
+                            </a>
+                            <a href="/listings" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
                     </div>
                     <div class="card-body">
                         {% if recent_listings %}
+                            <div class="alert alert-info alert-sm mb-3">
+                                <i class="fas fa-info-circle"></i> 
+                                <small>Showing GT3 RS listings matching your <a href="/search-criteria" class="alert-link">search criteria</a></small>
+                            </div>
                             <div class="list-group list-group-flush">
                                 {% for listing in recent_listings %}
                                 <div class="list-group-item">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <a href="/listing/{{ listing.id }}" class="text-decoration-none">
-                                                    {{ listing.year }} {{ listing.model }}
-                                                    {% if listing.trim %}<small class="text-muted">{{ listing.trim }}</small>{% endif %}
-                                                </a>
-                                            </h6>
-                                            <p class="mb-1">
-                                                <strong class="text-success">${{ "{:,}".format(listing.price) }}</strong>
-                                                {% if listing.mileage %} • {{ "{:,}".format(listing.mileage) }} miles{% endif %}
-                                                {% if listing.exterior_color %} • {{ listing.exterior_color }}{% endif %}
-                                            </p>
-                                            <small class="text-muted">
-                                                {% if listing.city and listing.state %}{{ listing.city }}, {{ listing.state }}{% endif %}
-                                                {% if listing.dealer_name %} • {{ listing.dealer_name }}{% endif %}
-                                            </small>
-                                        </div>
-                                        <div class="text-end">
-                                            <small class="text-muted d-block">{{ listing.first_seen[:10] if listing.first_seen else 'Recently' }}</small>
-                                            {% if listing.is_watched %}
-                                                <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing({{ listing.id }})">
-                                                    <i class="fas fa-eye-slash"></i> Unwatch
-                                                </button>
+                                    <div class="d-flex w-100 align-items-center">
+                                        <!-- Car Thumbnail -->
+                                        <div class="me-3">
+                                            {% if listing.image_urls %}
+                                                {% set image_url = listing.image_urls.split(',')[0] if ',' in listing.image_urls else listing.image_urls %}
+                                                <img src="{{ image_url }}" 
+                                                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef;"
+                                                     alt="{{ listing.year }} {{ listing.model }}"
+                                                     onerror="this.src='https://images.unsplash.com/photo-1611821064430-077e5c464cc9?w=80&h=60&fit=crop&auto=format'; this.style.opacity='0.6';">
                                             {% else %}
-                                                <button class="btn btn-primary btn-sm" onclick="watchListing({{ listing.id }})">
-                                                    <i class="fas fa-eye"></i> Watch
-                                                </button>
+                                                <div style="width: 80px; height: 60px; background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-car text-muted"></i>
+                                                </div>
                                             {% endif %}
+                                        </div>
+                                        
+                                        <!-- Car Details -->
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <div>
+                                                    <h6 class="mb-1">
+                                                        <a href="/listing/{{ listing.id }}" class="text-decoration-none">
+                                                            {{ listing.year }} {{ listing.model }}
+                                                            {% if listing.trim %}<small class="text-muted">{{ listing.trim }}</small>{% endif %}
+                                                        </a>
+                                                    </h6>
+                                                    <p class="mb-1">
+                                                        <strong class="text-success">${{ "{:,}".format(listing.price) }}</strong>
+                                                        {% if listing.mileage %} • {{ "{:,}".format(listing.mileage) }} miles{% endif %}
+                                                        {% if listing.exterior_color %} • {{ listing.exterior_color }}{% endif %}
+                                                    </p>
+                                                    <small class="text-muted">
+                                                        {% if listing.city and listing.state %}{{ listing.city }}, {{ listing.state }}{% endif %}
+                                                        {% if listing.dealer_name %} • {{ listing.dealer_name }}{% endif %}
+                                                    </small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <small class="text-muted d-block">{{ listing.first_seen[:10] if listing.first_seen else 'Recently' }}</small>
+                                                    {% if listing.is_watched %}
+                                                        <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing({{ listing.id }})">
+                                                            <i class="fas fa-eye-slash"></i> Unwatch
+                                                        </button>
+                                                    {% else %}
+                                                        <button class="btn btn-primary btn-sm" onclick="watchListing({{ listing.id }})">
+                                                            <i class="fas fa-eye"></i> Watch
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -260,13 +285,40 @@
                             </div>
                         {% else %}
                             <div class="text-center py-4">
-                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">No recent listings found</p>
-                                <button class="btn btn-primary" onclick="addSampleListing()">
-                                    <i class="fas fa-plus"></i> Add Sample Listing
-                                </button>
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No GT3 RS listings match your search criteria</p>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="/search-criteria" class="btn btn-primary">
+                                        <i class="fas fa-sliders-h"></i> Adjust Search Criteria
+                                    </a>
+                                    <a href="/setup" class="btn btn-outline-secondary">
+                                        <i class="fas fa-cog"></i> Setup Login
+                                    </a>
+                                </div>
                             </div>
                         {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watched Cars -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-eye porsche-red"></i> Cars I'm Watching</h5>
+                        <a href="/watch-criteria" class="btn btn-sm btn-outline-primary">Manage Criteria</a>
+                    </div>
+                    <div class="card-body">
+                        <div id="watchedCarsContainer">
+                            <!-- Watched cars will be loaded here -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading watched cars...</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -394,20 +446,111 @@
                 });
         }
         
-        function addGT3RSSamples() {
-            fetch('/api/add-gt3rs-samples', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showAlert('success', '🏎️ ' + data.message + ' - Perfect for GT3 RS tracking!');
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        showAlert('danger', data.message);
+        function scrapeRealListings() {
+            showLoader('Scraping real 911 listings from CarGurus...');
+            
+            const requestData = {
+                model: '911',
+                zip_code: '90210',
+                max_listings: 20,
+                max_distance: 100
+            };
+            
+            fetch('/api/scrape-real-listings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoader();
+                if (data.success) {
+                    showAlert('success', `🚀 ${data.message}! Found ${data.total_scraped} listings with real CarGurus links.`);
+                    setTimeout(() => location.reload(), 3000);
+                } else {
+                    showAlert('danger', 'Scraping error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                hideLoader();
+                showAlert('danger', 'Network error: ' + error.message);
+            });
+        }
+        
+        function scrapeAuthenticated() {
+            // Prompt for Google email used with CarGurus
+            const googleEmail = prompt("Enter the Google email you use to sign into CarGurus:");
+            if (!googleEmail) return;
+            
+            showAlert('info', '🔐 A browser window will open for Google OAuth authentication. Please sign in and return here.');
+            
+            showLoader('Starting Google OAuth flow... Please complete authentication in the browser window.');
+            
+            const requestData = {
+                google_email: googleEmail,
+                zip_code: '90210',
+                max_listings: 30
+            };
+            
+            fetch('/api/scrape-authenticated', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoader();
+                if (data.success) {
+                    showAlert('success', `✅ ${data.message} - Now you have REAL CarGurus data with images and VINs!`);
+                    
+                    // Update UI to reflect authentication status
+                    if (data.authenticated && data.google_email) {
+                        const loginBtn = document.querySelector('[onclick="scrapeAuthenticated()"]');
+                        const parentCol = loginBtn?.closest('.col-md-3');
+                        if (parentCol) {
+                            const truncatedEmail = data.google_email.length > 20 ? 
+                                data.google_email.substring(0, 20) + '...' : data.google_email;
+                            parentCol.innerHTML = `
+                                <button class="btn btn-success btn-lg w-100 mb-2" onclick="logout()">
+                                    <i class="fas fa-user-check"></i> Logged in as ${truncatedEmail}
+                                </button>
+                                <small class="text-muted">Click to logout • <a href="#" onclick="scrapeAuthenticated()">Scrape again</a></small>
+                            `;
+                        }
                     }
-                })
-                .catch(error => {
-                    showAlert('danger', 'Error adding GT3 RS samples: ' + error.message);
-                });
+                    
+                    setTimeout(() => location.reload(), 4000);
+                } else {
+                    showAlert('warning', 'OAuth flow: ' + data.message + ' You may need to complete authentication in the browser.');
+                }
+            })
+            .catch(error => {
+                hideLoader();
+                showAlert('danger', 'Network error: ' + error.message);
+            });
+        }
+        
+        function logout() {
+            showLoader('Logging out...');
+            
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoader();
+                if (data.success) {
+                    showAlert('success', '✅ Successfully logged out from CarGurus');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showAlert('danger', 'Error logging out: ' + data.message);
+                }
+            })
+            .catch(error => {
+                hideLoader();
+                showAlert('danger', 'Network error: ' + error.message);
+            });
         }
         
         function watchListing(listingId) {
@@ -422,6 +565,8 @@
                             button.innerHTML = '<i class="fas fa-eye-slash"></i> Unwatch';
                             button.className = 'btn btn-outline-secondary btn-sm';
                         }
+                        // Reload watched cars section
+                        loadWatchedCars();
                     } else {
                         showAlert('danger', data.message);
                     }
@@ -441,6 +586,8 @@
                             button.innerHTML = '<i class="fas fa-eye"></i> Watch';
                             button.className = 'btn btn-primary btn-sm';
                         }
+                        // Reload watched cars section
+                        loadWatchedCars();
                     } else {
                         showAlert('danger', data.message);
                     }
@@ -605,6 +752,107 @@
             }, 1000);
         }
 
+        // Check authentication status on page load
+        function checkAuthenticationStatus() {
+            fetch('/api/auth-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authenticated && data.google_email) {
+                        // Update login button to show authenticated state
+                        const loginBtn = document.querySelector('[onclick="scrapeAuthenticated()"]');
+                        const parentCol = loginBtn?.closest('.col-md-3');
+                        if (parentCol) {
+                            const truncatedEmail = data.google_email.length > 20 ? 
+                                data.google_email.substring(0, 20) + '...' : data.google_email;
+                            parentCol.innerHTML = `
+                                <button class="btn btn-success btn-lg w-100 mb-2" onclick="logout()">
+                                    <i class="fas fa-user-check"></i> Logged in as ${truncatedEmail}
+                                </button>
+                                <small class="text-muted">Click to logout • <a href="#" onclick="scrapeAuthenticated()">Scrape again</a></small>
+                            `;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('Auth status check failed:', error);
+                });
+        }
+        
+        function loadWatchedCars() {
+            fetch('/api/watched-cars')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('watchedCarsContainer');
+                    
+                    if (data.success && data.watched_cars && data.watched_cars.length > 0) {
+                        let html = '<div class="row">';
+                        
+                        data.watched_cars.forEach(car => {
+                            const imageUrl = car.image_urls ? car.image_urls.split(',')[0] : '';
+                            const thumbnailHtml = imageUrl ? 
+                                `<img src="${imageUrl}" alt="${car.year} ${car.model}" style="width: 60px; height: 40px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                 <div style="width: 60px; height: 40px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; display: none; align-items: center; justify-content: center;"><i class="fas fa-car text-muted"></i></div>` :
+                                `<div style="width: 60px; height: 40px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;"><i class="fas fa-car text-muted"></i></div>`;
+                                
+                            html += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="d-flex align-items-center p-3 border rounded bg-light">
+                                        <div class="me-3">
+                                            ${thumbnailHtml}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                <a href="/listing/${car.id}" class="text-decoration-none">
+                                                    ${car.year} ${car.model} ${car.trim || ''}
+                                                </a>
+                                            </h6>
+                                            <div class="text-success fw-bold mb-1">$${car.price.toLocaleString()}</div>
+                                            <small class="text-muted">
+                                                ${car.mileage ? car.mileage.toLocaleString() + ' miles' : ''} 
+                                                ${car.exterior_color ? ' • ' + car.exterior_color : ''}
+                                                ${car.city && car.state ? ' • ' + car.city + ', ' + car.state : ''}
+                                            </small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="unwatchListing(${car.id})" title="Remove from watch list">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-4">
+                                <i class="fas fa-eye-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No cars being watched yet</p>
+                                <a href="/listings" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Browse Listings
+                                </a>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.log('Error loading watched cars:', error);
+                    document.getElementById('watchedCarsContainer').innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-exclamation-triangle"></i> Error loading watched cars
+                        </div>
+                    `;
+                });
+        }
+        
+        // Check auth status on page load
+        checkAuthenticationStatus();
+        
+        // Load watched cars
+        loadWatchedCars();
+        
         // Auto-refresh dashboard every 5 minutes
         setInterval(() => {
             // Only refresh if no modals are open

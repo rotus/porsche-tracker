@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Criteria - Porsche GT3 RS Tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .porsche-red { color: #d70e31 !important; }
+        .bg-porsche-red { background-color: #d70e31 !important; }
+        .form-control:focus { border-color: #d70e31; box-shadow: 0 0 0 0.2rem rgba(215, 14, 49, 0.25); }
+        .btn-porsche { background-color: #d70e31; border-color: #d70e31; color: white; }
+        .btn-porsche:hover { background-color: #b50c2a; border-color: #b50c2a; color: white; }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand porsche-red" href="/">
+                <img src="https://logos-world.net/wp-content/uploads/2021/04/Porsche-Logo.png" 
+                     alt="Porsche" 
+                     width="40" 
+                     height="30" 
+                     style="margin-right: 8px; background: transparent; filter: invert(0); object-fit: contain;"
+                     onerror="this.src='https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/porsche.svg'; this.style.filter='invert(1)';">
+                Porsche GT3 RS Tracker
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/listings"><i class="fas fa-list"></i> Listings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/search-criteria"><i class="fas fa-search"></i> Search Criteria</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-porsche-red text-white">
+                        <h4 class="mb-0"><i class="fas fa-search"></i> GT3 RS Search Criteria</h4>
+                        <p class="mb-0 mt-2 small">Configure search parameters for listings shown on dashboard and recent listings</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Search Focus:</strong> This app is specifically designed for <strong>911 GT3 RS</strong> models. 
+                            Configure the criteria below to control which GT3 RS listings appear on your dashboard.
+                            <br><strong>Your location:</strong> 94526 (used for distance calculations)
+                        </div>
+
+                        <form id="searchCriteriaForm">
+                            <div class="row">
+                                <!-- Year Range -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="minYear" class="form-label"><i class="fas fa-calendar"></i> Minimum Year</label>
+                                    <select class="form-control" id="minYear" name="min_year">
+                                        <option value="">Any Year</option>
+                                        {% for year in range(2015, 2026) %}
+                                        <option value="{{ year }}" {% if criteria and criteria.min_year == year %}selected{% endif %}>{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxYear" class="form-label"><i class="fas fa-calendar-alt"></i> Maximum Year</label>
+                                    <select class="form-control" id="maxYear" name="max_year">
+                                        <option value="">Any Year</option>
+                                        {% for year in range(2015, 2026) %}
+                                        <option value="{{ year }}" {% if criteria and criteria.max_year == year %}selected{% endif %}>{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Mileage -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxMileage" class="form-label"><i class="fas fa-road"></i> Maximum Mileage</label>
+                                    <input type="number" class="form-control" id="maxMileage" name="max_mileage" 
+                                           value="{{ criteria.max_mileage if criteria else 50000 }}" 
+                                           placeholder="e.g., 50000">
+                                    <div class="form-text">Leave empty for no mileage limit</div>
+                                </div>
+                                
+                                <!-- Distance -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxDistance" class="form-label"><i class="fas fa-map-marker-alt"></i> Maximum Distance (miles from 94526)</label>
+                                    <select class="form-control" id="maxDistance" name="max_distance">
+                                        <option value="25" {% if criteria and criteria.max_distance == 25 %}selected{% endif %}>25 miles</option>
+                                        <option value="50" {% if criteria and criteria.max_distance == 50 %}selected{% endif %}>50 miles</option>
+                                        <option value="100" {% if criteria and criteria.max_distance == 100 %}selected{% endif %}>100 miles</option>
+                                        <option value="200" {% if criteria and criteria.max_distance == 200 %}selected{% endif %}>200 miles</option>
+                                        <option value="500" {% if criteria and criteria.max_distance == 500 %}selected{% endif %}>500 miles</option>
+                                        <option value="1000" {% if criteria and criteria.max_distance == 1000 %}selected{% endif %}>1000 miles</option>
+                                        <option value="" {% if criteria and not criteria.max_distance %}selected{% endif %}>Any distance</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Price -->
+                                <div class="col-md-12 mb-3">
+                                    <label for="maxPrice" class="form-label"><i class="fas fa-dollar-sign"></i> Maximum Price</label>
+                                    <input type="number" class="form-control" id="maxPrice" name="max_price" 
+                                           value="{{ criteria.max_price if criteria else 500000 }}" 
+                                           placeholder="e.g., 300000">
+                                    <div class="form-text">Leave empty for no price limit</div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Current Criteria Summary -->
+                            {% if criteria %}
+                            <div class="alert alert-secondary">
+                                <h6><i class="fas fa-list-ul"></i> Current Search Criteria:</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Model:</strong> {{ criteria.make }} {{ criteria.model }} {{ criteria.trim }}</li>
+                                    <li><strong>Years:</strong> {{ criteria.min_year or 'Any' }} - {{ criteria.max_year or 'Any' }}</li>
+                                    <li><strong>Max Mileage:</strong> {{ "{:,}".format(criteria.max_mileage) if criteria.max_mileage else 'No limit' }}</li>
+                                    <li><strong>Max Distance:</strong> {{ criteria.max_distance }} miles from {{ criteria.user_zipcode }}</li>
+                                    <li><strong>Max Price:</strong> ${{ "{:,}".format(criteria.max_price) if criteria.max_price else 'No limit' }}</li>
+                                    <li><strong>Last Updated:</strong> {{ criteria.updated_at[:10] if criteria.updated_at else 'Never' }}</li>
+                                </ul>
+                            </div>
+                            {% endif %}
+
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-porsche btn-lg">
+                                    <i class="fas fa-save"></i> Update Search Criteria
+                                </button>
+                                <a href="/" class="btn btn-outline-secondary btn-lg ms-2">
+                                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.getElementById('searchCriteriaForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Convert empty strings to null
+            Object.keys(data).forEach(key => {
+                if (data[key] === '') {
+                    data[key] = null;
+                }
+            });
+            
+            fetch('/api/update-search-criteria', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    const successAlert = document.createElement('div');
+                    successAlert.className = 'alert alert-success alert-dismissible fade show';
+                    successAlert.innerHTML = `
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>Search criteria updated!</strong> Dashboard listings will automatically refresh with your new preferences.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.container').prepend(successAlert);
+                    
+                    // Auto-redirect to dashboard after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    alert('Error updating search criteria: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating search criteria.');
+            });
+        });
+    </script>
+</body>
+</html>

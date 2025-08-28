@@ -231,8 +231,8 @@ class SimpleDB:
                 INSERT INTO listings 
                 (cargurus_id, make, model, year, trim, price, mileage, condition, 
                  exterior_color, interior_color, vin, transmission, drivetrain, fuel_type,
-                 dealer_name, city, state, zip_code, distance_from_user, url, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 dealer_name, city, state, zip_code, distance_from_user, url, image_urls, description)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 listing_data.get('cargurus_id'),
                 listing_data.get('make', 'Porsche'),
@@ -254,6 +254,7 @@ class SimpleDB:
                 listing_data.get('zip_code'),
                 listing_data.get('distance_from_user'),
                 listing_data.get('url'),
+                listing_data.get('image_urls'),
                 listing_data.get('description')
             ))
             
@@ -678,10 +679,12 @@ class SimpleDB:
                 'dealer_name': 'Porsche Beverly Hills',
                 'city': 'Beverly Hills',
                 'state': 'CA',
-                'url': 'https://www.cargurus.com/sample/gt3rs-991-1'
+                'url': None,  # Removed broken URL - will be populated by real scraping
+                'vin': 'WP0AC2A92GS161234',
+                'image_urls': 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=400&h=300&fit=crop&auto=format'  # Working Porsche image
             },
             {
-                'cargurus_id': 'gt3rs_991_2_2019',
+                'cargurus_id': 'gt3rs_991_2_2019_demo',
                 'model': '911',
                 'year': 2019,
                 'trim': 'GT3 RS',
@@ -693,7 +696,9 @@ class SimpleDB:
                 'dealer_name': 'Porsche Manhattan',
                 'city': 'New York',
                 'state': 'NY',
-                'url': 'https://www.cargurus.com/sample/gt3rs-991-2'
+                'url': None,  # No URL for this demo listing
+                'vin': 'WP0AC2A92KS161567',
+                'image_urls': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop&auto=format'  # Working yellow Porsche image
             },
             {
                 'cargurus_id': 'gt3rs_992_2023',
@@ -708,7 +713,9 @@ class SimpleDB:
                 'dealer_name': 'Porsche North Scottsdale',
                 'city': 'Scottsdale',
                 'state': 'AZ',
-                'url': 'https://www.cargurus.com/sample/gt3rs-992'
+                'url': None,  # Removed broken URL - will be populated by real scraping
+                'vin': 'WP0AC2A92NS161890',
+                'image_urls': 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400&h=300&fit=crop&auto=format'  # Working blue Porsche image
             }
         ]
         
@@ -717,6 +724,118 @@ class SimpleDB:
             if not existing:
                 self.add_listing(listing_data)
                 logger.info(f"Added sample GT3 RS: {listing_data['year']} {listing_data['trim']}")
+
+    def get_search_criteria(self):
+        """Get current search criteria for GT3 RS listings"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS search_criteria (
+                id INTEGER PRIMARY KEY,
+                min_year INTEGER,
+                max_year INTEGER,
+                max_mileage INTEGER,
+                max_distance INTEGER DEFAULT 100,
+                max_price INTEGER,
+                user_zipcode TEXT DEFAULT '94526',
+                trim TEXT DEFAULT 'GT3 RS',
+                model TEXT DEFAULT '911',
+                make TEXT DEFAULT 'Porsche',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Get existing criteria or create default
+        cursor.execute('SELECT * FROM search_criteria ORDER BY updated_at DESC LIMIT 1')
+        criteria = cursor.fetchone()
+        
+        if not criteria:
+            # Create default criteria
+            cursor.execute('''
+                INSERT INTO search_criteria (min_year, max_year, max_mileage, max_distance, max_price, user_zipcode, trim, model, make)
+                VALUES (2015, 2025, 50000, 100, 500000, '94526', 'GT3 RS', '911', 'Porsche')
+            ''')
+            conn.commit()
+            cursor.execute('SELECT * FROM search_criteria ORDER BY updated_at DESC LIMIT 1')
+            criteria = cursor.fetchone()
+        
+        conn.close()
+        return criteria
+
+    def update_search_criteria(self, min_year=None, max_year=None, max_mileage=None, max_distance=None, max_price=None):
+        """Update search criteria for GT3 RS listings"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Get current criteria
+        current_criteria = self.get_search_criteria()
+        
+        # Update with new values or keep existing
+        new_min_year = min_year if min_year is not None else current_criteria['min_year']
+        new_max_year = max_year if max_year is not None else current_criteria['max_year']
+        new_max_mileage = max_mileage if max_mileage is not None else current_criteria['max_mileage']
+        new_max_distance = max_distance if max_distance is not None else current_criteria['max_distance']
+        new_max_price = max_price if max_price is not None else current_criteria['max_price']
+        
+        cursor.execute('''
+            UPDATE search_criteria SET 
+                min_year = ?, max_year = ?, max_mileage = ?, max_distance = ?, max_price = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (new_min_year, new_max_year, new_max_mileage, new_max_distance, new_max_price, current_criteria['id']))
+        
+        conn.commit()
+        conn.close()
+        return True
+
+    def get_filtered_recent_listings(self, limit=10):
+        """Get recent listings filtered by search criteria"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Get current search criteria
+        criteria = self.get_search_criteria()
+        
+        # Build dynamic query based on search criteria
+        query = '''
+            SELECT * FROM listings 
+            WHERE is_active = 1 
+            AND make = 'Porsche' 
+            AND model = '911' 
+            AND (trim = 'GT3 RS' OR trim LIKE '%GT3 RS%')
+        '''
+        params = []
+        
+        # Apply year filters
+        if criteria and criteria['min_year']:
+            query += ' AND year >= ?'
+            params.append(criteria['min_year'])
+        if criteria and criteria['max_year']:
+            query += ' AND year <= ?'
+            params.append(criteria['max_year'])
+            
+        # Apply mileage filter
+        if criteria and criteria['max_mileage']:
+            query += ' AND (mileage IS NULL OR mileage <= ?)'
+            params.append(criteria['max_mileage'])
+            
+        # Apply price filter
+        if criteria and criteria['max_price']:
+            query += ' AND (price IS NULL OR price <= ?)'
+            params.append(criteria['max_price'])
+            
+        # For distance filtering, we'd need to calculate distance from 94526
+        # This would require geocoding and is complex - skip for now
+        
+        query += ' ORDER BY first_seen DESC LIMIT ?'
+        params.append(limit)
+        
+        cursor.execute(query, params)
+        listings = cursor.fetchall()
+        conn.close()
+        return listings
 
 # Global database instance
 db = SimpleDB()

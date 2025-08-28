@@ -3,42 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ listing.year }} {{ listing.model }} - Porsche Tracker</title>
+    <title>{{ listing.year }} {{ listing.make }} {{ listing.model }}{% if listing.trim %} {{ listing.trim }}{% endif %} - Porsche GT3 RS Tracker</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     
     <style>
-        .porsche-red { color: #d5001c; }
-        .navbar-brand { font-weight: bold; }
-        .price-tag { font-size: 2rem; font-weight: bold; color: #2e7d32; }
-        .detail-section { margin-bottom: 30px; }
-        .spec-table th { background-color: #f8f9fa; }
-        .price-history-chart { height: 300px; }
+        .porsche-red { color: #d70e31 !important; }
+        .bg-porsche-red { background-color: #d70e31 !important; }
+        /* Removed complex image styling */
+        .price-display { font-size: 2.5rem; font-weight: bold; color: #d70e31; }
+        .spec-table th { width: 40%; font-weight: 600; color: #495057; }
+        .listing-header { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; }
+        .days-on-market { background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 20px; }
+        .price-chart { height: 300px; }
     </style>
 </head>
-<body>
+<body class="bg-light">
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand porsche-red" href="/">
-                <i class="fas fa-car-side"></i> Porsche Tracker
+                <img src="https://logos-world.net/wp-content/uploads/2021/04/Porsche-Logo.png" 
+                     alt="Porsche" 
+                     width="40" 
+                     height="30" 
+                     style="margin-right: 8px; background: transparent; filter: invert(0); object-fit: contain;"
+                     onerror="this.src='https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/porsche.svg'; this.style.filter='invert(1)';">
+                Porsche GT3 RS Tracker
             </a>
             
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a class="nav-link" href="/">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/listings"><i class="fas fa-list"></i> Listings</a>
+                        <a class="nav-link active" href="/listings">Listings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/watch-criteria"><i class="fas fa-eye"></i> Watch Criteria</a>
+                        <a class="nav-link" href="/search-criteria">Search Criteria</a>
                     </li>
                 </ul>
             </div>
@@ -46,268 +55,177 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="container my-4">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="/listings">Listings</a></li>
-                        <li class="breadcrumb-item active">{{ listing.year }} {{ listing.model }}</li>
-                    </ol>
-                </nav>
-                
-                <h1 class="display-5">
-                    {{ listing.year }} {{ listing.make }} {{ listing.model }}
+    <main class="container mt-4">
+        <!-- Listing Header -->
+        <div class="listing-header p-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">{{ listing.year }} {{ listing.make }} {{ listing.model }}</h1>
                     {% if listing.trim %}
-                        <small class="text-muted">{{ listing.trim }}</small>
-                    {% endif %}
-                </h1>
-                
-                <div class="price-tag mb-3">${{ "{:,}".format(listing.price) }}</div>
-                
-                <div class="mb-3">
-                    {% if listing.is_watched %}
-                        <button class="btn btn-outline-danger" onclick="unwatchListing({{ listing.id }})">
-                            <i class="fas fa-eye-slash"></i> Remove from Watch List
-                        </button>
-                    {% else %}
-                        <button class="btn btn-success" onclick="watchListing({{ listing.id }})">
-                            <i class="fas fa-eye"></i> Add to Watch List
-                        </button>
+                    <h3 class="text-muted mb-3">{{ listing.trim }}</h3>
                     {% endif %}
                     
-                    {% if listing.url %}
-                    <a href="{{ listing.url }}" target="_blank" class="btn btn-primary">
-                        <i class="fas fa-external-link-alt"></i> View on CarGurus
-                    </a>
-                    {% endif %}
+                    <!-- Price and Market Data -->
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="price-display">
+                            {% if listing.price %}
+                                ${{ "{:,}".format(listing.price) }}
+                            {% else %}
+                                <span class="text-warning">See CarGurus for Price</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if listing.first_seen %}
+                        <div class="days-on-market">
+                            <i class="fas fa-calendar"></i> 
+                            Listed {{ listing.first_seen[:10] if listing.first_seen else 'Today' }}
+                        </div>
+                        {% endif %}
+                    </div>
                     
-                    <a href="/listings" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Listings
-                    </a>
+                    <div class="d-flex gap-2 mb-2">
+                        {% if listing.condition == 'New' %}
+                        <span class="badge bg-success fs-6">{{ listing.condition }}</span>
+                        {% else %}
+                        <span class="badge bg-info fs-6">{{ listing.condition }}</span>
+                        {% endif %}
+                        
+                        {% if listing.is_watched %}
+                        <span class="badge bg-primary fs-6"><i class="fas fa-eye"></i> Watching</span>
+                        {% endif %}
+                        
+                        {% if listing.mileage %}
+                        <span class="badge bg-secondary fs-6">{{ "{:,}".format(listing.mileage) }} miles</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="col-md-4 text-end">
+                    <div class="d-grid gap-2">
+                        {% if listing.is_watched %}
+                        <button class="btn btn-outline-danger btn-lg" onclick="unwatchListing({{ listing.id }})">
+                            <i class="fas fa-eye-slash"></i> Stop Watching
+                        </button>
+                        {% else %}
+                        <button class="btn btn-success btn-lg" onclick="watchListing({{ listing.id }})">
+                            <i class="fas fa-eye"></i> Watch This Car
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{{ listing.url }}" target="_blank" class="btn btn-primary btn-lg">
+                            <i class="fas fa-external-link-alt"></i> View on CarGurus
+                        </a>
+                        
+                        <a href="/listings" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Listings
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="row">
-            <!-- Main Details -->
+            <!-- Car Image and Details -->
             <div class="col-md-8">
+                <!-- Car Photo - WORKING CARGURUS IMAGE -->
+                <div class="mb-4">
+                    {% if listing.image_urls %}
+                        <img src="{{ listing.image_urls }}" 
+                             alt="{{ listing.year }} {{ listing.make }} {{ listing.model }}"
+                             style="width: 100%; max-width: 800px; height: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                    {% else %}
+                        <p>No image available</p>
+                    {% endif %}
+                </div>
+
                 <!-- Vehicle Specifications -->
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-car"></i> Vehicle Specifications</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-striped">
-                                <tr>
-                                    <th>Year</th>
-                                    <td>{{ listing.year }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Make</th>
-                                    <td>{{ listing.make }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Model</th>
-                                    <td>{{ listing.model }}</td>
-                                </tr>
-                                {% if listing.trim %}
-                                <tr>
-                                    <th>Trim</th>
-                                    <td>{{ listing.trim }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.mileage %}
-                                <tr>
-                                    <th>Mileage</th>
-                                    <td>{{ "{:,}".format(listing.mileage) }} miles</td>
-                                </tr>
-                                {% endif %}
-                                <tr>
-                                    <th>Condition</th>
-                                    <td>{{ listing.condition }}</td>
-                                </tr>
-                                {% if listing.exterior_color %}
-                                <tr>
-                                    <th>Exterior Color</th>
-                                    <td>{{ listing.exterior_color }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.interior_color %}
-                                <tr>
-                                    <th>Interior Color</th>
-                                    <td>{{ listing.interior_color }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.transmission %}
-                                <tr>
-                                    <th>Transmission</th>
-                                    <td>{{ listing.transmission }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.drivetrain %}
-                                <tr>
-                                    <th>Drivetrain</th>
-                                    <td>{{ listing.drivetrain }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.vin %}
-                                <tr>
-                                    <th>VIN</th>
-                                    <td><code>{{ listing.vin }}</code></td>
-                                </tr>
-                                {% endif %}
-                            </table>
-                        </div>
+                <div class="card">
+                    <div class="card-header bg-porsche-red text-white">
+                        <h5 class="mb-0"><i class="fas fa-car"></i> Vehicle Details</h5>
                     </div>
-                </div>
-
-                <!-- Dealer Information -->
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-store"></i> Dealer Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table">
-                                {% if listing.dealer_name %}
-                                <tr>
-                                    <th>Dealer</th>
-                                    <td>{{ listing.dealer_name }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.city and listing.state %}
-                                <tr>
-                                    <th>Location</th>
-                                    <td>{{ listing.city }}, {{ listing.state }} {% if listing.zip_code %}{{ listing.zip_code }}{% endif %}</td>
-                                </tr>
-                                {% endif %}
-                                {% if listing.distance_from_user %}
-                                <tr>
-                                    <th>Distance</th>
-                                    <td>{{ listing.distance_from_user }} miles</td>
-                                </tr>
-                                {% endif %}
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                {% if listing.description %}
-                <!-- Description -->
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-info-circle"></i> Description</h5>
-                        </div>
-                        <div class="card-body">
-                            <p>{{ listing.description }}</p>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Sidebar -->
-            <div class="col-md-4">
-                <!-- Price History -->
-                {% if price_history %}
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-chart-line"></i> Price History</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="priceChart" class="price-history-chart"></canvas>
-                            
-                            <div class="mt-3">
-                                <h6>Price Changes:</h6>
-                                <ul class="list-group list-group-flush">
-                                    {% for change in price_history[:5] %}
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <span>${{ "{:,}".format(change.price) }}</span>
-                                        <small class="text-muted">{{ change.recorded_at[:10] if change.recorded_at else 'Recently' }}</small>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless spec-table">
+                                    <tr><th>Year:</th><td>{{ listing.year }}</td></tr>
+                                    <tr><th>Make:</th><td>{{ listing.make }}</td></tr>
+                                    <tr><th>Model:</th><td>{{ listing.model }}</td></tr>
+                                    {% if listing.trim %}<tr><th>Trim:</th><td><strong>{{ listing.trim }}</strong></td></tr>{% endif %}
+                                    {% if listing.mileage %}<tr><th>Mileage:</th><td>{{ "{:,}".format(listing.mileage) }} miles</td></tr>{% endif %}
+                                    <tr><th>Condition:</th><td>{{ listing.condition }}</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless spec-table">
+                                    {% if listing.exterior_color %}<tr><th>Exterior:</th><td>{{ listing.exterior_color }}</td></tr>{% endif %}
+                                    {% if listing.interior_color %}<tr><th>Interior:</th><td>{{ listing.interior_color }}</td></tr>{% endif %}
+                                    {% if listing.city and listing.state %}<tr><th>Location:</th><td>{{ listing.city }}, {{ listing.state }}</td></tr>{% endif %}
+                                    {% if listing.dealer_name %}<tr><th>Dealer:</th><td>{{ listing.dealer_name }}</td></tr>{% endif %}
+                                    {% if listing.distance_from_user %}<tr><th>Distance:</th><td>{{ listing.distance_from_user }} miles</td></tr>{% endif %}
+                                    {% if listing.vin %}<tr><th>VIN:</th><td><code class="small">{{ listing.vin }}</code></td></tr>{% endif %}
+                                </table>
                             </div>
                         </div>
                     </div>
                 </div>
-                {% endif %}
+            </div>
 
-                <!-- Quick Stats -->
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-info"></i> Listing Stats</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm">
+            <!-- Price Tracking Sidebar -->
+            <div class="col-md-4">
+                <!-- Price Tracker -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Price Tracker</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="priceChart" class="price-chart"></div>
+                        
+                        <div class="mt-3">
+                            <h6>Market Data:</h6>
+                            <table class="table table-sm table-borderless">
                                 <tr>
-                                    <th>First Seen</th>
-                                    <td>{{ listing.first_seen[:10] if listing.first_seen else 'Recently' }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Last Updated</th>
-                                    <td>{{ listing.last_updated[:10] if listing.last_updated else 'Recently' }}</td>
-                                </tr>
-                                <tr>
-                                    <th>Status</th>
-                                    <td>
-                                        {% if listing.is_active %}
-                                        <span class="badge bg-success">Active</span>
+                                    <th>Current Price:</th>
+                                    <td class="text-end">
+                                        {% if listing.price %}
+                                        <strong>${{ "{:,}".format(listing.price) }}</strong>
                                         {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                        {% endif %}
-                                        
-                                        {% if listing.is_watched %}
-                                        <span class="badge bg-primary">Watched</span>
+                                        <span class="text-muted">See CarGurus</span>
                                         {% endif %}
                                     </td>
                                 </tr>
-                                {% if price_history %}
                                 <tr>
-                                    <th>Price Changes</th>
-                                    <td>{{ price_history|length }}</td>
+                                    <th>First Seen:</th>
+                                    <td class="text-end">{{ listing.first_seen[:10] if listing.first_seen else 'Today' }}</td>
                                 </tr>
-                                {% endif %}
+                                <tr>
+                                    <th>Status:</th>
+                                    <td class="text-end">
+                                        {% if listing.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Sold</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="detail-section">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-cogs"></i> Actions</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                {% if not listing.is_watched %}
-                                <button class="btn btn-primary" onclick="watchListing({{ listing.id }})">
-                                    <i class="fas fa-eye"></i> Watch This Listing
-                                </button>
-                                {% else %}
-                                <button class="btn btn-outline-danger" onclick="unwatchListing({{ listing.id }})">
-                                    <i class="fas fa-eye-slash"></i> Stop Watching
-                                </button>
-                                {% endif %}
-                                
-                                {% if listing.url %}
-                                <a href="{{ listing.url }}" target="_blank" class="btn btn-success">
-                                    <i class="fas fa-external-link-alt"></i> View Original
-                                </a>
-                                {% endif %}
-                                
-                                <button class="btn btn-info" onclick="alert('Share functionality coming soon!')">
-                                    <i class="fas fa-share"></i> Share Listing
-                                </button>
-                            </div>
+                <!-- Listing Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if not listing.is_watched %}
+                            <button class="btn btn-outline-primary" onclick="watchListing({{ listing.id }})">
+                                <i class="fas fa-plus"></i> Add to Watch List
+                            </button>
+                            {% else %}
+                            <button class="btn btn-outline-danger" onclick="unwatchListing({{ listing.id }})">
+                                <i class="fas fa-minus"></i> Remove from Watch List
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -319,6 +237,75 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Beautiful Price Tracker Chart with Real Data
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if price_history and price_history|length > 0 %}
+            const priceData = [{
+                x: [{% for record in price_history %}'{{ record.recorded_at[:10] }}'{% if not loop.last %},{% endif %}{% endfor %}],
+                y: [{% for record in price_history %}{{ record.price }}{% if not loop.last %},{% endif %}{% endfor %}],
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { 
+                    color: '#d70e31', 
+                    width: 4,
+                    shape: 'spline'
+                },
+                marker: { 
+                    size: 12, 
+                    color: '#d70e31',
+                    line: { color: 'white', width: 2 }
+                },
+                fill: 'tonexty',
+                fillcolor: 'rgba(215, 14, 49, 0.1)',
+                name: 'Price History',
+                hovertemplate: '<b>$%{y:,.0f}</b><br>%{x}<extra></extra>'
+            }];
+            
+            const layout = {
+                title: false,
+                margin: { t: 10, r: 10, b: 45, l: 70 },
+                xaxis: { 
+                    title: { text: 'Date', font: { size: 12, color: '#666' } },
+                    showgrid: true,
+                    gridcolor: 'rgba(200, 200, 200, 0.3)',
+                    zeroline: false,
+                    tickfont: { size: 10, color: '#666' }
+                },
+                yaxis: { 
+                    title: { text: 'Price', font: { size: 12, color: '#666' } },
+                    tickformat: '$,.0f',
+                    showgrid: true,
+                    gridcolor: 'rgba(200, 200, 200, 0.3)',
+                    zeroline: false,
+                    tickfont: { size: 11, color: '#666' }
+                },
+                plot_bgcolor: 'rgba(248, 249, 250, 0.8)',
+                paper_bgcolor: 'transparent',
+                font: { family: 'Inter, system-ui, sans-serif' },
+                showlegend: false,
+                hovermode: 'x'
+            };
+            
+            const config = {
+                displayModeBar: false, 
+                responsive: true,
+                staticPlot: false
+            };
+            
+            Plotly.newPlot('priceChart', priceData, layout, config);
+            {% else %}
+            document.getElementById('priceChart').innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-chart-line fa-3x" style="color: #d70e31; opacity: 0.3;"></i>
+                    </div>
+                    <h6 class="fw-bold">Price Tracking</h6>
+                    <p class="small mb-0">Starts when price data is available from CarGurus</p>
+                </div>
+            `;
+            {% endif %}
+        });
+
         function watchListing(listingId) {
             fetch(`/api/watch-listing/${listingId}`, { method: 'POST' })
                 .then(response => response.json())
@@ -329,7 +316,10 @@
                         alert('Error: ' + data.message);
                     }
                 })
-                .catch(error => alert('Error: ' + error.message));
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error adding to watch list');
+                });
         }
         
         function unwatchListing(listingId) {
@@ -342,45 +332,11 @@
                         alert('Error: ' + data.message);
                     }
                 })
-                .catch(error => alert('Error: ' + error.message));
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error removing from watch list');
+                });
         }
-
-        {% if price_history %}
-        // Price History Chart
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        const priceChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [{% for change in price_history|reverse %}'{{ change.recorded_at[:10] if change.recorded_at else "Recently" }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-                datasets: [{
-                    label: 'Price',
-                    data: [{% for change in price_history|reverse %}{{ change.price }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                    borderColor: '#d5001c',
-                    backgroundColor: 'rgba(213, 0, 28, 0.1)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return '$' + value.toLocaleString();
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-        {% endif %}
     </script>
 </body>
 </html>
